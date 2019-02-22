@@ -53,7 +53,7 @@ resource "aws_elb" "web-lb" {
   }
 }
 
-ource "aws_security_group" "allow-ssh" {
+resource "aws_security_group" "allow-ssh" {
   name        = "allow-all"
   description = "Allow all inbound SSH traffic"
 
@@ -64,4 +64,3 @@ ource "aws_security_group" "allow-ssh" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
