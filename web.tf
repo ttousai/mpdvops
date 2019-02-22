@@ -28,6 +28,7 @@ resource "aws_instance" "web" {
   ami           = "${data.aws_ami.ubuntu_img.id}"
   availability_zone = "us-east-1a"
   instance_type = "t2.micro"
+  user_data = "${file("scripts/userdata")}"
   key_name = "${aws_key_pair.ops.id}"
   tags = {
     Name = "webserver"
@@ -52,4 +53,15 @@ resource "aws_elb" "web-lb" {
   }
 }
 
+ource "aws_security_group" "allow-ssh" {
+  name        = "allow-all"
+  description = "Allow all inbound SSH traffic"
+
+  ingress {
+    from_port   = 0
+    to_port     = 22
+    protocol    = "22"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
