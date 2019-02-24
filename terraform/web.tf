@@ -28,16 +28,43 @@ resource "aws_instance" "web" {
   ami           = "${data.aws_ami.ubuntu_img.id}"
   availability_zone = "us-east-1a"
   instance_type = "t2.micro"
-  user_data = "${file("scripts/userdata")}"
+  # user_data = "${file("init/userdata")}"
   key_name = "${aws_key_pair.ops.id}"
+  security_groups = ["${aws_security_group.allow-ssh.name}", "${aws_security_group.allow-lb-sg.name}"]
+
   tags = {
     Name = "webserver"
+  }
+
+  provisioner "file" {
+    source      = "../src"
+    destination = "/tmp"
+  
+    connection {
+      type     = "ssh"
+      agent    = true
+      user     = "ubuntu"
+    }
+  }
+  
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/src/run.sh",
+      "/tmp/src/run.sh",
+    ]
+  
+    connection {
+      type     = "ssh"
+      agent    = true
+      user     = "ubuntu"
+    }
   }
 }
 
 resource "aws_elb" "web-lb" {
   name               = "web-lb"
   availability_zones = ["us-east-1a"]
+  security_groups  = ["${aws_security_group.lb-sg.id}"]
 
   listener {
     instance_port     = 80
@@ -46,7 +73,15 @@ resource "aws_elb" "web-lb" {
     lb_protocol       = "http"
   }
 
-  instances                   = ["${aws_instance.web.id}"]
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    target              = "HTTP:5000/"
+    interval            = 10
+  }
+
+  instances = ["${aws_instance.web.id}"]
 
   tags = {
     Name = "web-lb"
@@ -54,13 +89,58 @@ resource "aws_elb" "web-lb" {
 }
 
 resource "aws_security_group" "allow-ssh" {
-  name        = "allow-all"
+  name        = "allow-ssh"
   description = "Allow all inbound SSH traffic"
 
   ingress {
-    from_port   = 0
+    from_port   = 22
     to_port     = 22
-    protocol    = "22"
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "lb-sg" {
+  name        = "allow-public-http"
+  description = "Allow public HTTP"
+
+  ingress {
+    from_port   = 80 
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "allow-lb-sg" {
+  name        = "allow-lb-sg"
+  description = "Allow LB SG"
+
+  ingress {
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    security_groups = ["${aws_security_group.lb-sg.id}"]
+  }
+
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
   }
 }
