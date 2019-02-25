@@ -7,7 +7,7 @@ with self signed certificates.
 This project creates cloud resources which will be billed, please
 make sure to run the `teardown.sh` script after you are done.
 
-## Pre-requisite
+## Pre-requisites
 This project requires terraform to be installed on your workstation.
 See https://learn.hashicorp.com/terraform/getting-started/install.html.
 
@@ -16,13 +16,19 @@ See https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html
 
 ## Start
 Run:
+```
 export AWS_PROFILE=<profile>
 ./init.sh
+```
 
 ## Check the App
+After a successful run of `init.sh`, a message will be displayed with the URL
+to visit to test the deployed app.
 
-# Tear down
+## Tear down
 When you are done please run the command below to tear down all cloud
 resources created by init.
+```
 export AWS_PROFILE=<profile>
 ./teardown.sh
+```
